@@ -130,6 +130,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MyAllocator.h" />
     <ClInclude Include="DoubleLinkedList.h" />
     <ClInclude Include="SingleLinkedList.h" />
     <ClInclude Include="Stack.h" />

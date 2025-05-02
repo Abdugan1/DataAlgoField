@@ -4,43 +4,76 @@
 #include <initializer_list>
 
 
-template<typename T>
+template<typename T, typename Allocator = std::allocator<T>>
+class Vector;
+
+template<typename T, typename Allocator>
+class ConstVectorIterator final
+{
+public:
+	using val_type = T;
+	using reference = T&;
+	using const_reference = const T&;
+	using pointer = T*;
+	using const_iterator = ConstVectorIterator<T, Allocator>;
+	using my_vector = Vector<T>;
+	ConstVectorIterator(const my_vector* owner, const pointer ptr) :owner_{owner}, ptr_ { ptr } {}
+
+	const T& operator*() { return *ptr_; }
+
+	const_iterator& operator++() { ++ptr_; return *this; }
+	const_iterator operator++(int) { const_iterator tmp = *this; ++ptr_; return tmp; }
+
+	constexpr bool operator==(const const_iterator& other) const
+	{
+		assert(owner_ == other.owner_);
+		return ptr_ == other.ptr_;
+	}
+	constexpr bool operator!=(const const_iterator& other) const { return !(*this == other); }
+
+private:
+	const my_vector* owner_{ nullptr };
+	const T* ptr_{ nullptr };
+};
+
+template<typename T, typename Allocator>
+class VectorIterator final
+{
+public:
+	using val_type = T;
+	using reference = T&;
+	using const_reference = const T&;
+	using pointer = T*;
+	using iterator = VectorIterator<T, Allocator>;
+	using my_vector = Vector<T>;
+
+	VectorIterator(const my_vector* owner, pointer ptr) : owner_(owner), ptr_{ ptr } {}
+
+	reference operator*() { return *ptr_; }
+	const_reference operator*() const { return *ptr_; }
+
+	iterator& operator++() { ++ptr_; return *this; } // Pre-increment
+	iterator operator++(int) { iterator tmp = *this; ++ptr_; return tmp; } // Post-increment
+
+	constexpr bool operator==(const iterator& other) const
+	{
+		assert(owner_ == other.owner_);
+		return ptr_ == other.ptr_;
+	}
+	constexpr bool operator!=(const iterator& other) const { return !(*this == other); }
+private:
+	const my_vector* owner_{ nullptr };
+	pointer ptr_{ nullptr };
+};
+
+template<typename T, typename Allocator>
 class Vector final
 {
 public:
-	class Iterator
-	{
-	public:
-		Iterator(T* ptr) : ptr_{ptr} {}
+	using Iterator = VectorIterator<T, Allocator>;
+	using ConstIterator = ConstVectorIterator<T, Allocator>;
 
-		T& operator*() { return *ptr_; }
-		const T& operator*() const { return *ptr_; }
-
-		Iterator& operator++() { ++ptr_; return *this; } // Pre-increment
-		Iterator operator++(int) { Iterator tmp = *this; ++ptr_; return tmp; } // Post-increment
-
-		constexpr bool operator==(const Iterator& other) const { return ptr_ == other.ptr_; }
-		constexpr bool operator!=(const Iterator& other) const { return !(*this == other); }
-	private:
-		T* ptr_{ nullptr };
-	};
-
-	class ConstIterator
-	{
-	public:
-		ConstIterator(const T* ptr) : ptr_{ptr} {}
-
-		const T& operator*() { return *ptr_; }
-
-		ConstIterator& operator++() { ++ptr_; return *this; }
-		ConstIterator operator++(int) { ConstIterator tmp = *this; ++ptr_; return tmp; }
-
-		constexpr bool operator==(const ConstIterator& other) const { return ptr_ == other.ptr_; }
-		constexpr bool operator!=(const ConstIterator& other) const { return !(*this == other); }
-
-	private:
-		const T* ptr_{ nullptr };
-	};
+	using allocator_type = Allocator;
 
 public:
 	Vector();
@@ -96,8 +129,10 @@ private:
 private:
 	enum : size_t
 	{
-		DefaultCapacity = 8
+		DefaultCapacity = 0
 	};
+
+	allocator_type allocator_{};
 
 	T* data_{nullptr};
 
@@ -105,61 +140,51 @@ private:
 	size_t capacity_{ DefaultCapacity };
 };
 
-
-template <typename T>
-constexpr bool Vector<T>::isInBounds(size_t i) const noexcept
+template <typename T, typename Allocator>
+constexpr bool Vector<T, Allocator>::isInBounds(size_t i) const noexcept
 {
 	return (i < size_);
 }
 
 
-template <typename T>
-Vector<T>::Vector()
+template <typename T, typename Allocator>
+Vector<T, Allocator>::Vector()
 {
-	initializeEmptyVector();
 }
 
 
-template <typename T>
-Vector<T>::Vector(std::initializer_list<T> vals)
+template <typename T, typename Allocator>
+Vector<T, Allocator>::Vector(std::initializer_list<T> vals)
 {
 	size_ = vals.size();
-	if (size_ >= capacity_)
-	{
-		capacity_ = size_;
-	}
-	data_ = new T[capacity_];
+	capacity_ = size_;
+	data_ = allocator_.allocate(capacity_);
 
 	size_t i = 0;
-	for (auto&& val : vals)
+	for (auto& val : vals)
 	{
-		data_[i] = val;
+		allocator_.construct(&data_[i], val);
 		i++;
 	}
 }
 
 
-template <typename T>
-Vector<T>::~Vector()
+template <typename T, typename Allocator>
+Vector<T, Allocator>::~Vector()
 {
-	// Do not call clear()! It reinits an empty vector again!
-	delete[] data_;
-	data_ = nullptr;
-
-	size_ = 0;
-	capacity_ = 0;
+	clear();
 }
 
 
-template <typename T>
-Vector<T>::Vector(const Vector<T>& other)
+template <typename T, typename Allocator>
+Vector<T, Allocator>::Vector(const Vector<T>& other)
 {
 	copyFromAnother(other);
 }
 
 
-template <typename T>
-Vector<T>& Vector<T>::operator=(const Vector<T>& other)
+template <typename T, typename Allocator>
+Vector<T, Allocator>& Vector<T, Allocator>::operator=(const Vector<T>& other)
 {
 	if (this == &other)
 	{
@@ -172,45 +197,42 @@ Vector<T>& Vector<T>::operator=(const Vector<T>& other)
 }
 
 
-template <typename T>
-Vector<T>::Vector(Vector<T>&& other) noexcept
+template <typename T, typename Allocator>
+Vector<T, Allocator>::Vector(Vector<T>&& other) noexcept
 {
-	// Should I use std::move here? Is it treated like lvalue if I don't use std::move?
 	moveFromAnother(std::move(other));
 }
 
 
-template <typename T>
-Vector<T>& Vector<T>::operator=(Vector<T>&& other) noexcept
+template <typename T, typename Allocator>
+Vector<T, Allocator>& Vector<T, Allocator>::operator=(Vector<T>&& other) noexcept
 {
-	// Do I need to do this? In cpy ctor, yes. But here?
 	if (this == &other)
 	{
 		return *this;
 	}
 
-	// Should I use std::move here? Is it treated like lvalue if I don't use std::move?
 	moveFromAnother(std::move(other));
 
 	return *this;
 }
 
-template <typename T>
-void Vector<T>::pushFront(const T& val)
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::pushFront(const T& val)
 {
 	insertAtBeginning(val);
 }
 
-template <typename T>
-void Vector<T>::pushFront(T&& val)
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::pushFront(T&& val)
 {
 	insertAtBeginning(std::move(val));
 }
 
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename ValType>
-void Vector<T>::insertAtBeginning(ValType&& val)
+void Vector<T, Allocator>::insertAtBeginning(ValType&& val)
 {
 	const bool bHasEnoughCapacity = size_ + 1 <= capacity_;
 	if (!bHasEnoughCapacity)
@@ -220,43 +242,45 @@ void Vector<T>::insertAtBeginning(ValType&& val)
 
 	for (size_t i = size_; i > 0; --i)
 	{
-		data_[i] = std::move(data_[i - 1]);
+		allocator_.destroy(&data_[i]);
+		allocator_.construct(&data_[i], std::move(data_[i - 1]));
 	}
 
-	data_[0] = std::forward<ValType>(val);
+	allocator_.construct(&data_[0], std::forward<ValType>(val));
 
 	++size_;
 }
 
 
-template <typename T>
-void Vector<T>::pushBack(const T& val)
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::pushBack(const T& val)
 {
 	insertAtEnd(val);
 }
 
 
-template <typename T>
-void Vector<T>::pushBack(T&& val)
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::pushBack(T&& val)
 {
 	insertAtEnd(std::move(val));
 }
 
-template <typename T>
+template <typename T, typename Allocator>
 template <typename ValType>
-void Vector<T>::insertAtEnd(ValType&& val)
+void Vector<T, Allocator>::insertAtEnd(ValType&& val)
 {
 	if (size_ >= capacity_)
 	{
 		inflate();
 	}
-	// We need std::forward. Notice the template ValType used. It's different from the container's
-	data_[size_] = std::forward<ValType>(val);
+
+	allocator_.construct(&data_[size_], std::forward<ValType>(val));
+
 	size_++;
 }
 
-template <typename T>
-void Vector<T>::popFront()
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::popFront()
 {
 	/**
 	 * 1. emtpy
@@ -275,150 +299,156 @@ void Vector<T>::popFront()
 }
 
 
-template <typename T>
-void Vector<T>::popBack()
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::popBack()
 {
 	assert(isInBounds(size_ - 1));
 	--size_;
 }
 
 
-template <typename T>
-void Vector<T>::clear()
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::clear()
 {
-	delete[] data_;
+	for (size_t i = 0; i < size_; ++i)
+	{
+		allocator_.destroy(&data_[i]);
+	}
+
+	allocator_.deallocate(data_, capacity_);
+
 	data_ = nullptr;
 
 	size_ = 0;
 	capacity_ = 0;
-
-	initializeEmptyVector();
 }
 
 
-template <typename T>
-constexpr size_t Vector<T>::size() const noexcept
+template <typename T, typename Allocator>
+constexpr size_t Vector<T, Allocator>::size() const noexcept
 {
 	return size_;
 }
 
 
-template <typename T>
-constexpr size_t Vector<T>::capacity() const noexcept
+template <typename T, typename Allocator>
+constexpr size_t Vector<T, Allocator>::capacity() const noexcept
 {
 	return capacity_;
 }
 
 
-template <typename T>
-constexpr bool Vector<T>::isEmpty() const noexcept
+template <typename T, typename Allocator>
+constexpr bool Vector<T, Allocator>::isEmpty() const noexcept
 {
 	return size_ == 0;
 }
 
 
-template <typename T>
-T& Vector<T>::operator[](size_t i)
+template <typename T, typename Allocator>
+T& Vector<T, Allocator>::operator[](size_t i)
 {
 	return const_cast<T&>(static_cast<const Vector&>(*this)[i]);
 }
 
 
-template <typename T>
-const T& Vector<T>::operator[](size_t i) const
+template <typename T, typename Allocator>
+const T& Vector<T, Allocator>::operator[](size_t i) const
 {
 	assert(isInBounds(i));
 	return data_[i];
 }
 
-
-template <typename T>
-typename Vector<T>::Iterator Vector<T>::begin()
+template <typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator Vector<T, Allocator>::begin()
 {
-	return Iterator{ data_ };
+	return Iterator(this, data_);
+}
+
+template <typename T, typename Allocator>
+typename Vector<T, Allocator>::Iterator Vector<T, Allocator>::end()
+{
+	return Iterator( this, data_ + size_ );
 }
 
 
-template <typename T>
-typename Vector<T>::Iterator Vector<T>::end()
+template <typename T, typename Allocator>
+typename Vector<T, Allocator>::ConstIterator Vector<T, Allocator>::begin() const
 {
-	return Iterator{ data_ + size_ };
+	return ConstIterator( this, data_ );
 }
 
 
-template <typename T>
-typename Vector<T>::ConstIterator Vector<T>::begin() const
+template <typename T, typename Allocator>
+typename Vector<T, Allocator>::ConstIterator Vector<T, Allocator>::end() const
 {
-	return ConstIterator{ data_ };
+	return ConstIterator( this, data_ + size_ );
 }
 
 
-template <typename T>
-typename Vector<T>::ConstIterator Vector<T>::end() const
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::inflate()
 {
-	return ConstIterator{ data_ + size_ };
-}
+	size_t oldCapacity = capacity_;
 
-
-template <typename T>
-void Vector<T>::inflate()
-{
-	capacity_ *= 2;
+	if (capacity_ == 0)
+	{
+		capacity_ = 1;
+	}
+	else
+	{
+		capacity_ *= 2;
+	}
 
 	auto oldData = data_;
 
-	data_ = new T[capacity_];
+	data_ = allocator_.allocate(capacity_);
 
 	for (size_t i = 0; i < size_; ++i)
 	{
-		data_[i] = std::move(oldData[i]);
+		allocator_.construct(&data_[i], std::move(oldData[i]));
+		allocator_.destroy(&oldData[i]); // TOSEARCH: Do I even need this if I'm deallocating?
 	}
 
-	delete[] oldData;
+	allocator_.deallocate(oldData, oldCapacity);
 }
 
 
-template <typename T>
-void Vector<T>::initializeEmptyVector()
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::initializeEmptyVector()
 {
 	size_ = 0;
 	capacity_ = DefaultCapacity;
-	data_ = new T[capacity_];
+
+	data_ = allocator_.allocate(capacity_);
 }
 
 
-template <typename T>
-void Vector<T>::copyFromAnother(const Vector<T>& other)
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::copyFromAnother(const Vector<T>& other)
 {
-	T* newData = new T[other.capacity_];
+	clear();
+
+	data_ = allocator_.allocate(other.capacity_);
 	for (size_t i = 0; i < other.size_; ++i)
 	{
-		newData[i] = other.data_[i];
+		allocator_.construct(&data_[i], other.data_[i]);
 	}
-
-	delete[] data_;
-	data_ = newData;
-	newData = nullptr;
 
 	size_ = other.size_;
 	capacity_ = other.capacity_;
 }
 
 
-template <typename T>
-void Vector<T>::moveFromAnother(Vector<T>&& other)
+template <typename T, typename Allocator>
+void Vector<T, Allocator>::moveFromAnother(Vector<T>&& other)
 {
+	clear();
+
 	size_ = other.size_;
 	capacity_ = other.capacity_;
 
 	data_ = other.data_;
-
-	// I could move one by one, but when you're allowed to "steal", why would you?
-	/*data_ = new T[capacity_];
-	for (size_t i = 0; i < size_; ++i)
-	{
-		data_[i] = std::move(other.data_[i]);
-	}*/
 
 	other.size_ = 0;
 	other.capacity_ = 0;

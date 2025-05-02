@@ -2,6 +2,29 @@
 #include <algorithm>
 #include <cassert>
 
+template<typename ValType>
+struct DoubleLinkedListNode final
+{
+	using Node = DoubleLinkedListNode<ValType>;
+	using NodePtr = Node*;
+
+	ValType value;
+	NodePtr previous{ nullptr };
+	NodePtr next{ nullptr };
+
+	DoubleLinkedListNode() = default;
+
+	DoubleLinkedListNode(const ValType& val, NodePtr previousNode, NodePtr nextNode)
+		: value(val), previous(previousNode), next(nextNode)
+	{
+	}
+
+	DoubleLinkedListNode(ValType&& val, NodePtr previousNode, NodePtr nextNode)
+		: value(std::move(val)), previous(previousNode), next(nextNode)
+	{
+	}
+};
+
 template<typename T>
 class DoubleLinkedList final
 {
@@ -13,8 +36,56 @@ public:
 		Node* next{ nullptr };
 	};
 
+	class Iterator
+	{
+	public:
+		Iterator(const DoubleLinkedList* owner, Node* node) : owner_{owner}, node_{node} {}
+
+		T& operator*() { return node_->value; }
+		const T& operator*() const { return node_->value; }
+
+		Iterator& operator++() { node_ = node_->next; return *this; }
+		Iterator operator++(int) { Iterator old(owner_, node_); node_ = node_->next; return old; }
+
+		constexpr bool operator==(const Iterator& other) const
+		{
+			assert(owner_ == other.owner_);
+			return node_ == other.node_;
+		}
+		constexpr bool operator!=(const Iterator& other) const { return !(*this == other); }
+
+	private:
+		const DoubleLinkedList* owner_ = nullptr;
+		Node* node_{ nullptr };
+
+		friend class DoubleLinkedList;
+	};
+
+	class ConstIterator
+	{
+	public:
+		ConstIterator(const DoubleLinkedList* owner, Node* node) : owner_{ owner }, node_{ node } {}
+
+		const T& operator*() const { return node_->value; }
+
+		ConstIterator& operator++() { node_ = node_->next; return *this; }
+		ConstIterator operator++(int) { ConstIterator old(owner_, node_); node_ = node_->next; return old; }
+
+		constexpr bool operator==(const ConstIterator& other) const
+		{
+			assert(owner_ == other.owner_);
+			return node_ == other.node_;
+		}
+		constexpr bool operator!=(const ConstIterator& other) const { return !(*this == other); }
+
+	private:
+		const DoubleLinkedList* owner_{ nullptr };
+		Node* node_{ nullptr };
+	};
+
 public:
 	DoubleLinkedList();
+	DoubleLinkedList(std::initializer_list<T> vals);
 	DoubleLinkedList(const DoubleLinkedList<T>& other);
 	DoubleLinkedList(DoubleLinkedList<T>&& other) noexcept;
 	~DoubleLinkedList();
@@ -30,11 +101,28 @@ public:
 
 	void clear();
 
+	void remove(Iterator where);
+
 	constexpr size_t size() const noexcept;
 	constexpr bool isEmpty() const noexcept;
 
 	DoubleLinkedList<T>& operator=(const DoubleLinkedList<T>& other);
 	DoubleLinkedList<T>& operator=(DoubleLinkedList<T>&& other) noexcept;
+
+	T& front();
+	const T& front() const;
+
+	T& back();
+	const T& back() const;
+
+	Iterator begin();
+	Iterator end();
+
+	ConstIterator begin() const;
+	ConstIterator end() const;
+
+	ConstIterator cbegin() const;
+	ConstIterator cend() const;
 
 private:
 	constexpr bool isInBounds(size_t index) const noexcept;
@@ -84,6 +172,33 @@ template <typename T>
 DoubleLinkedList<T>::DoubleLinkedList(const DoubleLinkedList<T>& other)
 {
 	copyFromAnother(other);
+}
+
+template <typename T>
+DoubleLinkedList<T>::DoubleLinkedList(std::initializer_list<T> vals)
+{
+	size_ = vals.size();
+	Node* previous = nullptr;
+	for (auto&& val : vals)
+	{
+		Node* node = new Node;
+		node->value = val;
+
+		if (head_ == nullptr)
+		{
+			head_ = node;
+		}
+
+		if (previous)
+		{
+			previous->next = node;
+			node->previous = previous;
+		}
+
+		previous = node;
+	}
+
+	tail_ = previous;
 }
 
 template <typename T>
@@ -278,6 +393,41 @@ void DoubleLinkedList<T>::clear()
 }
 
 template <typename T>
+void DoubleLinkedList<T>::remove(Iterator where)
+{
+	/**
+	 * 1. empty
+	 * 2. one elem
+	 * 3. beginning
+	 * 4. end
+	 * 5. 
+	 */
+	assert(where != end());
+
+
+	Node* previousNode = where.node_->previous;
+	Node* toDeleteNode = where.node_;
+	Node* nextNode = where.node_->next;
+
+	if (toDeleteNode == head_)
+	{
+		popFront();
+	}
+	else if (toDeleteNode == tail_)
+	{
+		popBack();
+	}
+	else
+	{
+		previousNode->next = nextNode;
+
+		delete toDeleteNode;
+
+		--size_;
+	}
+}
+
+template <typename T>
 DoubleLinkedList<T>& DoubleLinkedList<T>::operator=(const DoubleLinkedList<T>& other)
 {
 	if (this == &other)
@@ -299,6 +449,68 @@ DoubleLinkedList<T>& DoubleLinkedList<T>::operator=(DoubleLinkedList<T>&& other)
 	moveFromAnother(std::move(other));
 
 	return *this;
+}
+
+template <typename T>
+T& DoubleLinkedList<T>::front()
+{
+	return const_cast<T&>(static_cast<const DoubleLinkedList&>(*this).front());
+}
+
+template <typename T>
+const T& DoubleLinkedList<T>::front() const
+{
+	assert(!isEmpty());
+	return head_->value;
+}
+
+template <typename T>
+T& DoubleLinkedList<T>::back()
+{
+	return const_cast<T&>(static_cast<const DoubleLinkedList&>(*this).back());
+}
+
+template <typename T>
+const T& DoubleLinkedList<T>::back() const
+{
+	assert(!isEmpty());
+	return tail_->value;
+}
+
+template <typename T>
+typename DoubleLinkedList<T>::Iterator DoubleLinkedList<T>::begin()
+{
+	return Iterator(this, head_);
+}
+
+template <typename T>
+typename DoubleLinkedList<T>::Iterator DoubleLinkedList<T>::end()
+{
+	return Iterator(this, nullptr);
+}
+
+template <typename T>
+typename DoubleLinkedList<T>::ConstIterator DoubleLinkedList<T>::begin() const
+{
+	return ConstIterator(this, head_);
+}
+
+template <typename T>
+typename DoubleLinkedList<T>::ConstIterator DoubleLinkedList<T>::end() const
+{
+	return ConstIterator(this, nullptr);
+}
+
+template <typename T>
+typename DoubleLinkedList<T>::ConstIterator DoubleLinkedList<T>::cbegin() const
+{
+	return begin();
+}
+
+template <typename T>
+typename DoubleLinkedList<T>::ConstIterator DoubleLinkedList<T>::cend() const
+{
+	return end();
 }
 
 template <typename T>
@@ -346,5 +558,5 @@ void DoubleLinkedList<T>::moveFromAnother(DoubleLinkedList<T>&& other)
 
 	head_ = std::exchange(other.head_, nullptr);
 	tail_ = std::exchange(other.tail_, nullptr);
-	size_ = std::exchange(other.size_, nullptr);
+	size_ = std::exchange(other.size_, 0);
 }

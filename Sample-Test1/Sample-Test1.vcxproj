@@ -99,7 +99,9 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DoubleLinkedList.cpp" />
     <ClCompile Include="LinkedListTest.cpp" />
+    <ClCompile Include="Stack.cpp" />
     <ClCompile Include="VectorTest.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

@@ -3,15 +3,42 @@
 #include <assert.h>
 #include <initializer_list>
 
+template<typename ValType>
+struct SingleLinkedListNode final
+{
+	using Node = SingleLinkedListNode<ValType>;
+	using NodePtr = Node*;
+
+	ValType value;
+	NodePtr next{ nullptr };
+
+	SingleLinkedListNode() = default;
+
+
+	SingleLinkedListNode(const ValType& val, NodePtr nextNode)
+		: value(val), next(nextNode)
+	{
+	}
+
+	SingleLinkedListNode(ValType&& val, NodePtr nextNode)
+		: value(std::move(val)), next(nextNode)
+	{
+	}
+};
+
 template<typename T>
 class SingleLinkedList final
 {
 public:
-	struct Node
-	{
-		T value;
-		Node* next{ nullptr };
-	};
+	//struct Node
+	//{
+	//	T value;
+	//	Node* next{ nullptr };
+
+	//	Node(T&& val, Node* nextNode) : value{std::move(val)}, next{nextNode} {}
+	//};
+
+	using Node = SingleLinkedListNode<T>;
 
 	class Iterator
 	{
@@ -84,9 +111,6 @@ public:
 	SingleLinkedList& operator=(const SingleLinkedList& other);
 	SingleLinkedList& operator=(SingleLinkedList&& other) noexcept;
 
-	Node* get(size_t index);
-	const Node* get(size_t index) const;
-
 	void remove(Iterator where);
 
 	T& front();
@@ -113,6 +137,9 @@ private:
 
 	template<typename ValType>
 	void insertAtEnd(ValType&& val);
+
+	Node* get(size_t index);
+	const Node* get(size_t index) const;
 
 	constexpr bool isInBound(size_t index) const noexcept;
 
@@ -217,9 +244,7 @@ template <typename T>
 template <typename ValType>
 void SingleLinkedList<T>::insertAtBeginning(ValType&& val)
 {
-	Node* newNode = new Node;
-	newNode->value = std::forward<ValType>(val);
-	newNode->next = head_;
+	Node* newNode = new Node(std::forward<ValType>(val), head_);
 	head_ = newNode;
 
 	if (size_ == 0)

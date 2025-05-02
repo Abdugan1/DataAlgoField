@@ -5,28 +5,34 @@ template <typename T>
 class Stack final
 {
 public:
-	Stack();
+	Stack() = default;
 	Stack(std::initializer_list<T> vals);
-	Stack(const Stack<T>& other);
-	Stack(Stack<T>&& other) noexcept;
-	~Stack();
+	Stack(const Stack<T>& other) = default;
+	Stack(Stack<T>&& other) noexcept = default;
+	~Stack() = default;
 
-	void pushBack(const T& val);
-	void pushBack(T&& val);
-	void popBack();
+	void push(const T& val);
+	void push(T&& val);
+	void pop();
 
 	T& peek();
 	const T& peek() const;
 
+	constexpr size_t size() const noexcept;
 	constexpr bool isEmpty() const noexcept;
 
 	Stack<T>& operator=(const Stack<T>& other);
 	Stack<T>& operator=(Stack<T>&& other) noexcept;
 
-
 private:
 	SingleLinkedList<T> data_;
 };
+
+template <typename T>
+constexpr size_t Stack<T>::size() const noexcept
+{
+	return data_.size();
+}
 
 template <typename T>
 constexpr bool Stack<T>::isEmpty() const noexcept
@@ -35,48 +41,30 @@ constexpr bool Stack<T>::isEmpty() const noexcept
 }
 
 template <typename T>
-Stack<T>::Stack()
-{
-}
-
-template <typename T>
 Stack<T>::Stack(std::initializer_list<T> vals)
-	: data_{vals}
+// Cannot use since the order will be reversed
+	// : data_{vals}
 {
+	for (auto&& val : vals)
+	{
+		push(val);
+	}
 }
 
 template <typename T>
-Stack<T>::Stack(const Stack<T>& other)
-	: data_{other.data_}
-{
-}
-
-template <typename T>
-Stack<T>::Stack(Stack<T>&& other) noexcept
-	: data_{std::move(other.data_)}
-{
-}
-
-template <typename T>
-Stack<T>::~Stack()
-{
-	// If this class data_'s destructor, then SingleLinkedList clears its data in the destructor
-}
-
-template <typename T>
-void Stack<T>::pushBack(const T& val)
+void Stack<T>::push(const T& val)
 {
 	data_.pushFront(val);
 }
 
 template <typename T>
-void Stack<T>::pushBack(T&& val)
+void Stack<T>::push(T&& val)
 {
 	data_.pushFront(std::move(val));
 }
 
 template <typename T>
-void Stack<T>::popBack()
+void Stack<T>::pop()
 {
 	data_.popFront();
 }

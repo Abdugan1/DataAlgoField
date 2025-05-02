@@ -1,16 +1,18 @@
 #include "pch.h"
-#include "../Algorithms/SingleLinkedList.h"
+#include "../Algorithms/DoubleLinkedList.h"
 #include <vector>
-#include <numeric> // For std::iota
+#include <algorithm> // For std::equal
+#include <numeric>
 
-TEST(SingleLinkedListTest, DefaultConstructor) {
-    SingleLinkedList<int> list;
+TEST(DoubleLinkedListTest, DefaultConstructor)
+{
+    DoubleLinkedList<int> list;
     ASSERT_TRUE(list.isEmpty());
     ASSERT_EQ(list.size(), 0);
 }
 
-TEST(SingleLinkedListTest, InitializerListConstructor) {
-    SingleLinkedList<int> list{ 1, 2, 3, 4, 5 };
+TEST(DoubleLinkedListTest, InitializerListConstructor) {
+    DoubleLinkedList<int> list{ 1, 2, 3, 4, 5 };
     ASSERT_FALSE(list.isEmpty());
     ASSERT_EQ(list.size(), 5);
     ASSERT_EQ(list.front(), 1);
@@ -23,9 +25,9 @@ TEST(SingleLinkedListTest, InitializerListConstructor) {
     }
 }
 
-TEST(SingleLinkedListTest, CopyConstructor) {
-    SingleLinkedList<int> original{ 10, 20, 30 };
-    SingleLinkedList<int> copy = original;
+TEST(DoubleLinkedListTest, CopyConstructor) {
+    DoubleLinkedList<int> original{ 10, 20, 30 };
+    DoubleLinkedList<int> copy = original;
     ASSERT_FALSE(copy.isEmpty());
     ASSERT_EQ(copy.size(), 3);
     ASSERT_EQ(copy.front(), 10);
@@ -38,9 +40,9 @@ TEST(SingleLinkedListTest, CopyConstructor) {
     ASSERT_EQ(copy.front(), 10);
 }
 
-TEST(SingleLinkedListTest, MoveConstructor) {
-    SingleLinkedList<int> original{ 100, 200 };
-    SingleLinkedList<int> moved = std::move(original);
+TEST(DoubleLinkedListTest, MoveConstructor) {
+    DoubleLinkedList<int> original{ 100, 200 };
+    DoubleLinkedList<int> moved = std::move(original);
     ASSERT_TRUE(original.isEmpty());
     ASSERT_EQ(original.size(), 0);
     ASSERT_FALSE(moved.isEmpty());
@@ -49,18 +51,15 @@ TEST(SingleLinkedListTest, MoveConstructor) {
     ASSERT_EQ(moved.back(), 200);
 }
 
-TEST(SingleLinkedListTest, Destructor) {
-    // This test mainly checks for memory leaks, which is harder to automate in a unit test.
-    // We can create and destroy a list and rely on memory sanitizers (like AddressSanitizer)
-    // during testing to detect issues.
+TEST(DoubleLinkedListTest, Destructor) {
+    // Primarily for memory leak detection (using tools like AddressSanitizer)
     {
-        SingleLinkedList<double> list{ 1.1, 2.2, 3.3 };
+        DoubleLinkedList<double> list{ 1.1, 2.2, 3.3 };
     }
-    // If there were no memory leaks, the program should continue without errors.
 }
 
-TEST(SingleLinkedListTest, PushFront) {
-    SingleLinkedList<char> list;
+TEST(DoubleLinkedListTest, PushFront) {
+    DoubleLinkedList<char> list;
     list.pushFront('c');
     ASSERT_FALSE(list.isEmpty());
     ASSERT_EQ(list.size(), 1);
@@ -78,8 +77,8 @@ TEST(SingleLinkedListTest, PushFront) {
     ASSERT_EQ(list.back(), 'c');
 }
 
-TEST(SingleLinkedListTest, PushBack) {
-    SingleLinkedList<int> list;
+TEST(DoubleLinkedListTest, PushBack) {
+    DoubleLinkedList<int> list;
     list.pushBack(1);
     ASSERT_FALSE(list.isEmpty());
     ASSERT_EQ(list.size(), 1);
@@ -97,8 +96,8 @@ TEST(SingleLinkedListTest, PushBack) {
     ASSERT_EQ(list.back(), 3);
 }
 
-TEST(SingleLinkedListTest, PopFront) {
-    SingleLinkedList<int> list{ 1, 2, 3 };
+TEST(DoubleLinkedListTest, PopFront) {
+    DoubleLinkedList<int> list{ 1, 2, 3 };
     list.popFront();
     ASSERT_EQ(list.size(), 2);
     ASSERT_EQ(list.front(), 2);
@@ -114,13 +113,13 @@ TEST(SingleLinkedListTest, PopFront) {
     ASSERT_EQ(list.size(), 0);
 }
 
-TEST(SingleLinkedListTest, PopFrontOnEmptyList) {
-    SingleLinkedList<int> list;
+TEST(DoubleLinkedListTest, PopFrontOnEmptyList) {
+    DoubleLinkedList<int> list;
     ASSERT_DEATH(list.popFront(), ".*");
 }
 
-TEST(SingleLinkedListTest, PopBack) {
-    SingleLinkedList<int> list{ 1, 2, 3 };
+TEST(DoubleLinkedListTest, PopBack) {
+    DoubleLinkedList<int> list{ 1, 2, 3 };
     list.popBack();
     ASSERT_EQ(list.size(), 2);
     ASSERT_EQ(list.front(), 1);
@@ -136,27 +135,25 @@ TEST(SingleLinkedListTest, PopBack) {
     ASSERT_EQ(list.size(), 0);
 }
 
-TEST(SingleLinkedListTest, PopBackOnEmptyList) {
-    SingleLinkedList<int> list;
+TEST(DoubleLinkedListTest, PopBackOnEmptyList) {
+    DoubleLinkedList<int> list;
     ASSERT_DEATH(list.popBack(), ".*");
 }
 
-TEST(SingleLinkedListTest, Clear) {
-    SingleLinkedList<std::string> list{ "hello", "world" };
+TEST(DoubleLinkedListTest, Clear) {
+    DoubleLinkedList<std::string> list{ "hello", "world" };
     list.clear();
     ASSERT_TRUE(list.isEmpty());
     ASSERT_EQ(list.size(), 0);
-    // Ensure head and tail are also null
-    ASSERT_EQ(list.end(), list.begin());
-    ASSERT_EQ(list.end(), list.end());
+    ASSERT_EQ(list.begin(), list.end());
 }
 
-TEST(SingleLinkedListTest, SizeAndIsEmpty) {
-    SingleLinkedList<int> list1;
+TEST(DoubleLinkedListTest, SizeAndIsEmpty) {
+    DoubleLinkedList<int> list1;
     ASSERT_TRUE(list1.isEmpty());
     ASSERT_EQ(list1.size(), 0);
 
-    SingleLinkedList<int> list2{ 1, 2 };
+    DoubleLinkedList<int> list2{ 1, 2 };
     ASSERT_FALSE(list2.isEmpty());
     ASSERT_EQ(list2.size(), 2);
 
@@ -169,9 +166,9 @@ TEST(SingleLinkedListTest, SizeAndIsEmpty) {
     ASSERT_EQ(list2.size(), 0);
 }
 
-TEST(SingleLinkedListTest, AssignmentOperatorCopy) {
-    SingleLinkedList<int> original{ 5, 6, 7 };
-    SingleLinkedList<int> assigned;
+TEST(DoubleLinkedListTest, AssignmentOperatorCopy) {
+    DoubleLinkedList<int> original{ 5, 6, 7 };
+    DoubleLinkedList<int> assigned;
     assigned = original;
 
     ASSERT_FALSE(assigned.isEmpty());
@@ -185,7 +182,7 @@ TEST(SingleLinkedListTest, AssignmentOperatorCopy) {
     ASSERT_EQ(assigned.size(), 3);
     ASSERT_EQ(assigned.front(), 5);
 
-    // Self-assignment should be handled correctly
+    // Self-assignment
     assigned = assigned;
     ASSERT_FALSE(assigned.isEmpty());
     ASSERT_EQ(assigned.size(), 3);
@@ -193,9 +190,9 @@ TEST(SingleLinkedListTest, AssignmentOperatorCopy) {
     ASSERT_EQ(assigned.back(), 7);
 }
 
-TEST(SingleLinkedListTest, AssignmentOperatorMove) {
-    SingleLinkedList<int> original{ 8, 9 };
-    SingleLinkedList<int> assigned;
+TEST(DoubleLinkedListTest, AssignmentOperatorMove) {
+    DoubleLinkedList<int> original{ 8, 9 };
+    DoubleLinkedList<int> assigned;
     assigned = std::move(original);
 
     ASSERT_TRUE(original.isEmpty());
@@ -205,7 +202,7 @@ TEST(SingleLinkedListTest, AssignmentOperatorMove) {
     ASSERT_EQ(assigned.front(), 8);
     ASSERT_EQ(assigned.back(), 9);
 
-    // Self-move should be handled correctly (though less meaningful)
+    // Self-move
     assigned = std::move(assigned);
     ASSERT_FALSE(assigned.isEmpty());
     ASSERT_EQ(assigned.size(), 2);
@@ -213,8 +210,8 @@ TEST(SingleLinkedListTest, AssignmentOperatorMove) {
     ASSERT_EQ(assigned.back(), 9);
 }
 
-TEST(SingleLinkedListTest, FrontAndBack) {
-    SingleLinkedList<double> list{ 3.14, 2.718, 1.618 };
+TEST(DoubleLinkedListTest, FrontAndBack) {
+    DoubleLinkedList<double> list{ 3.14, 2.718, 1.618 };
     ASSERT_EQ(list.front(), 3.14);
     ASSERT_EQ(list.back(), 1.618);
 
@@ -224,23 +221,23 @@ TEST(SingleLinkedListTest, FrontAndBack) {
     list.back() = 2.0;
     ASSERT_EQ(list.back(), 2.0);
 
-    const SingleLinkedList<double> constList = { 6.0, 7.0 };
+    const DoubleLinkedList<double> constList = { 6.0, 7.0 };
     ASSERT_EQ(constList.front(), 6.0);
     ASSERT_EQ(constList.back(), 7.0);
 }
 
-TEST(SingleLinkedListTest, FrontAndBackOnEmptyList) {
-    SingleLinkedList<int> list;
+TEST(DoubleLinkedListTest, FrontAndBackOnEmptyList) {
+    DoubleLinkedList<int> list;
     ASSERT_DEATH(list.front(), ".*");
     ASSERT_DEATH(list.back(), ".*");
 
-    const SingleLinkedList<int> constList;
+    const DoubleLinkedList<int> constList;
     ASSERT_DEATH(constList.front(), ".*");
     ASSERT_DEATH(constList.back(), ".*");
 }
 
-TEST(SingleLinkedListTest, IteratorBeginAndEnd) {
-    SingleLinkedList<int> list{ 5, 10, 15 };
+TEST(DoubleLinkedListTest, IteratorBeginAndEnd) {
+    DoubleLinkedList<int> list{ 5, 10, 15 };
     std::vector<int> result;
     for (auto it = list.begin(); it != list.end(); ++it) {
         result.push_back(*it);
@@ -251,8 +248,8 @@ TEST(SingleLinkedListTest, IteratorBeginAndEnd) {
     ASSERT_EQ(result[2], 15);
 }
 
-TEST(SingleLinkedListTest, ConstIteratorBeginAndEnd) {
-    const SingleLinkedList<int> list{ 2, 4, 6 };
+TEST(DoubleLinkedListTest, ConstIteratorBeginAndEnd) {
+    const DoubleLinkedList<int> list{ 2, 4, 6 };
     std::vector<int> result;
     for (auto it = list.cbegin(); it != list.cend(); ++it) {
         result.push_back(*it);
@@ -272,8 +269,8 @@ TEST(SingleLinkedListTest, ConstIteratorBeginAndEnd) {
     ASSERT_EQ(result2[2], 6);
 }
 
-TEST(SingleLinkedListTest, IteratorIncrement) {
-    SingleLinkedList<int> list{ 1, 3, 5 };
+TEST(DoubleLinkedListTest, IteratorIncrement) {
+    DoubleLinkedList<int> list{ 1, 3, 5 };
     auto it = list.begin();
     ASSERT_EQ(*it, 1);
     ++it;
@@ -285,8 +282,8 @@ TEST(SingleLinkedListTest, IteratorIncrement) {
     ASSERT_EQ(it, list.end());
 }
 
-TEST(SingleLinkedListTest, ConstIteratorIncrement) {
-    const SingleLinkedList<int> list{ 2, 4, 6 };
+TEST(DoubleLinkedListTest, ConstIteratorIncrement) {
+    const DoubleLinkedList<int> list{ 2, 4, 6 };
     auto it = list.cbegin();
     ASSERT_EQ(*it, 2);
     ++it;
@@ -298,22 +295,21 @@ TEST(SingleLinkedListTest, ConstIteratorIncrement) {
     ASSERT_EQ(it, list.cend());
 }
 
-TEST(SingleLinkedListTest, IteratorDereference) {
-    SingleLinkedList<std::string> list{ "apple", "banana" };
+TEST(DoubleLinkedListTest, IteratorDereference) {
+    DoubleLinkedList<std::string> list{ "apple", "banana" };
     auto it = list.begin();
     ASSERT_EQ(*it, "apple");
     *it = "apricot";
     ASSERT_EQ(list.front(), "apricot");
 
-    const SingleLinkedList<std::string> constList{ "orange", "grape" };
+    const DoubleLinkedList<std::string> constList{ "orange", "grape" };
     auto constIt = constList.cbegin();
     ASSERT_EQ(*constIt, "orange");
     // Attempting to modify through const iterator should result in a compile error.
-    // (We can't directly test for compile errors in a unit test)
 }
 
-TEST(SingleLinkedListTest, IteratorEqualityAndInequality) {
-    SingleLinkedList<int> list{ 1 };
+TEST(DoubleLinkedListTest, IteratorEqualityAndInequality) {
+    DoubleLinkedList<int> list{ 1 };
     auto beginIt = list.begin();
     auto endIt = list.end();
     ASSERT_EQ(beginIt, beginIt);
@@ -325,8 +321,8 @@ TEST(SingleLinkedListTest, IteratorEqualityAndInequality) {
     ASSERT_EQ(beginIt, endIt);
 }
 
-TEST(SingleLinkedListTest, RemoveFromBeginning) {
-    SingleLinkedList<int> list{ 1, 2, 3 };
+TEST(DoubleLinkedListTest, RemoveFromBeginning) {
+    DoubleLinkedList<int> list{ 1, 2, 3 };
     auto it = list.begin();
     list.remove(it);
     ASSERT_EQ(list.size(), 2);
@@ -339,8 +335,8 @@ TEST(SingleLinkedListTest, RemoveFromBeginning) {
     }
 }
 
-TEST(SingleLinkedListTest, RemoveFromMiddle) {
-    SingleLinkedList<int> list{ 10, 20, 30, 40 };
+TEST(DoubleLinkedListTest, RemoveFromMiddle) {
+    DoubleLinkedList<int> list{ 10, 20, 30, 40 };
     auto it = list.begin();
     ++it; // Points to 20
     list.remove(it);
@@ -354,8 +350,8 @@ TEST(SingleLinkedListTest, RemoveFromMiddle) {
     }
 }
 
-TEST(SingleLinkedListTest, RemoveFromEnd) {
-    SingleLinkedList<int> list{ 100, 200, 300 };
+TEST(DoubleLinkedListTest, RemoveFromEnd) {
+    DoubleLinkedList<int> list{ 100, 200, 300 };
     auto it = list.begin();
     ++it;
     ++it; // Points to 300 (the last element)
@@ -370,8 +366,8 @@ TEST(SingleLinkedListTest, RemoveFromEnd) {
     }
 }
 
-TEST(SingleLinkedListTest, RemoveOnlyElement) {
-    SingleLinkedList<int> list{ 5 };
+TEST(DoubleLinkedListTest, RemoveOnlyElement) {
+    DoubleLinkedList<int> list{ 5 };
     auto it = list.begin();
     list.remove(it);
     ASSERT_TRUE(list.isEmpty());
@@ -379,32 +375,22 @@ TEST(SingleLinkedListTest, RemoveOnlyElement) {
     ASSERT_EQ(list.begin(), list.end());
 }
 
-TEST(SingleLinkedListTest, RemoveInvalidIterator) {
-    SingleLinkedList<int> list1{ 1, 2 };
-    SingleLinkedList<int> list2{ 3 };
+TEST(DoubleLinkedListTest, RemoveInvalidIterator) {
+    DoubleLinkedList<int> list1{ 1, 2 };
+    DoubleLinkedList<int> list2{ 3 };
     auto it = list2.begin();
     ASSERT_DEATH(list1.remove(it), ".*");
 }
 
-TEST(SingleLinkedListTest, RemoveEndIterator) {
-    SingleLinkedList<int> list{ 1 };
-    ASSERT_DEATH(list.remove(list.end()), ".*");
-}
-
-TEST(SingleLinkedListTest, RemoveOnEmptyListIterator) {
-    SingleLinkedList<int> list;
-    ASSERT_DEATH(list.remove(list.begin()), ".*");
-}
-
-TEST(SingleLinkedListTest, RangeBasedForLoop) {
-    SingleLinkedList<char> list{ 'p', 'q', 'r' };
+TEST(DoubleLinkedListTest, RangeBasedForLoop) {
+    DoubleLinkedList<char> list{ 'p', 'q', 'r' };
     std::string result = "";
     for (char c : list) {
         result += c;
     }
     ASSERT_EQ(result, "pqr");
 
-    const SingleLinkedList<char> constList{ 'x', 'y' };
+    const DoubleLinkedList<char> constList{ 'x', 'y' };
     std::string constResult = "";
     for (const char& c : constList) {
         constResult += c;
@@ -412,29 +398,43 @@ TEST(SingleLinkedListTest, RangeBasedForLoop) {
     ASSERT_EQ(constResult, "xy");
 }
 
-TEST(SingleLinkedListTest, LargeNumberOfElements) {
-    SingleLinkedList<int> list;
-    const size_t count = 1000;
-    for (size_t i = 0; i < count; ++i) {
-        list.pushBack(static_cast<int>(i));
-    }
-    ASSERT_EQ(list.size(), count);
-    ASSERT_EQ(list.front(), 0);
-    ASSERT_EQ(list.back(), 999);
+//TEST(DoubleLinkedListTest, LargeNumberOfElements) {
+//    DoubleLinkedList<int> list;
+//    const size_t count = 1000;
+//    for (size_t i = 0; i < count; ++i) {
+//        list.pushBack(static_cast<int>(i));
+//    }
+//    ASSERT_EQ(list.size(), count);
+//    ASSERT_EQ(list.front(), 0);
+//    ASSERT_EQ(list.back(), 999);
+//
+//    std::vector<int> expected(count);
+//    std::iota(expected.begin(), expected.end(), 0);
+//    ASSERT_TRUE(std::equal(list.begin(), list.end(), expected.begin(), expected.end()));
+//
+//    for (size_t i = 0; i < count / 2; ++i) {
+//        list.popFront();
+//    }
+//    ASSERT_EQ(list.size(), count / 2);
+//    ASSERT_EQ(list.front(), 500);
+//    ASSERT_EQ(list.back(), 999);
+//
+//    list.clear();
+//    ASSERT_TRUE(list.isEmpty());
+//    ASSERT_EQ(list.size(), 0);
+//}
 
-    size_t i = 0;
-    for (const auto& val : list) {
-        ASSERT_EQ(val, static_cast<int>(i++));
-    }
-
-    for (size_t i = 0; i < count / 2; ++i) {
-        list.popFront();
-    }
-    ASSERT_EQ(list.size(), count / 2);
-    ASSERT_EQ(list.front(), 500);
-    ASSERT_EQ(list.back(), 999);
-
-    list.clear();
-    ASSERT_TRUE(list.isEmpty());
-    ASSERT_EQ(list.size(), 0);
-}
+//TEST(DoubleLinkedListTest, GetElementAtIndex) {
+//    DoubleLinkedList<char> list{ 'a', 'b', 'c', 'd' };
+//    ASSERT_EQ(*list.get(0), 'a');
+//    ASSERT_EQ(*list.get(1), 'b');
+//    ASSERT_EQ(*list.get(2), 'c');
+//    ASSERT_EQ(*list.get(3), 'd');
+//    ASSERT_EQ(list.get(4), nullptr); // Out of bounds
+//
+//    const DoubleLinkedList<char> constList{ 'e', 'f', 'g' };
+//    ASSERT_EQ(*constList.get(0), 'e');
+//    ASSERT_EQ(*constList.get(1), 'f');
+//    ASSERT_EQ(*constList.get(2), 'g');
+//    ASSERT_EQ(constList.get(3), nullptr); // Out of bounds
+//}

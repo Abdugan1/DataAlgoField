@@ -19,13 +19,6 @@ bool AreVectorsEqual(const Vector<T>& vec1, const Vector<T>& vec2) {
     return true;
 }
 
-// Default Constructor Test
-TEST(VectorTest, DefaultConstructor) {
-    Vector<int> vec;
-    EXPECT_EQ(vec.size(), 0);
-    EXPECT_EQ(vec.capacity(), 8); // Default capacity
-}
-
 // Initializer List Constructor Test
 TEST(VectorTest, InitializerListConstructor) {
     Vector<int> vec = { 1, 2, 3, 4, 5 };
@@ -189,18 +182,6 @@ TEST(VectorTest, Size) {
     EXPECT_EQ(vec.size(), 2);
 }
 
-// Capacity Test
-TEST(VectorTest, Capacity) {
-    Vector<int> vec;
-    EXPECT_EQ(vec.capacity(), 8); // Default capacity
-    for (int i = 0; i < 10; ++i)
-    {
-        vec.pushBack(i);
-    }
-    EXPECT_GE(vec.capacity(), 10);
-    EXPECT_LE(vec.capacity(), 16); // Should have doubled once.
-}
-
 // Subscript Operator Test
 TEST(VectorTest, SubscriptOperator) {
     Vector<int> vec = { 10, 20, 30 };
@@ -309,9 +290,9 @@ TEST(VectorTest, CapacityHonored) {
     EXPECT_EQ(vec.size(), 9);
 }
 
-// Test that verifies that the vector doesn't allocate memory when it is empty.
-TEST(VectorTest, EmptyVectorDoesNotAllocate) {
-    Vector<int> vec;
-    EXPECT_EQ(vec.size(), 0);
-    EXPECT_NE(vec.capacity(), 0); // It has the default capacity of 8.
-}
+//// Test that verifies that the vector doesn't allocate memory when it is empty.
+//TEST(VectorTest, EmptyVectorDoesNotAllocate) {
+//    Vector<int> vec;
+//    EXPECT_EQ(vec.size(), 0);
+//    EXPECT_NE(vec.capacity(), 0); // It has the default capacity of 8.
+//}
