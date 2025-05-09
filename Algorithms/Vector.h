@@ -19,7 +19,7 @@ public:
 	using my_vector = Vector<T>;
 	ConstVectorIterator(const my_vector* owner, const pointer ptr) :owner_{owner}, ptr_ { ptr } {}
 
-	const T& operator*() { return *ptr_; }
+	const T& operator*() const { return *ptr_; }
 
 	const_iterator& operator++() { ++ptr_; return *this; }
 	const_iterator operator++(int) { const_iterator tmp = *this; ++ptr_; return tmp; }
@@ -95,7 +95,9 @@ public:
 	void popFront();
 	void popBack();
 
-	void clear();
+	void reset();
+
+	void reserve(size_t n);
 
 	constexpr size_t size() const noexcept;
 	constexpr size_t capacity() const noexcept;
@@ -119,25 +121,18 @@ private:
 	template<typename ValType>
 	void insertAtEnd(ValType&& val);
 
-	void initializeEmptyVector();
-
 	constexpr bool isInBounds(size_t i) const noexcept;
 
 	void copyFromAnother(const Vector<T>& other);
 	void moveFromAnother(Vector<T>&& other);
 
 private:
-	enum : size_t
-	{
-		DefaultCapacity = 0
-	};
-
 	allocator_type allocator_{};
 
 	T* data_{nullptr};
 
 	size_t size_{0};
-	size_t capacity_{ DefaultCapacity };
+	size_t capacity_{ 0 };
 };
 
 template <typename T, typename Allocator>
@@ -172,7 +167,7 @@ Vector<T, Allocator>::Vector(std::initializer_list<T> vals)
 template <typename T, typename Allocator>
 Vector<T, Allocator>::~Vector()
 {
-	clear();
+	reset();
 }
 
 
@@ -242,8 +237,8 @@ void Vector<T, Allocator>::insertAtBeginning(ValType&& val)
 
 	for (size_t i = size_; i > 0; --i)
 	{
-		allocator_.destroy(&data_[i]);
 		allocator_.construct(&data_[i], std::move(data_[i - 1]));
+		allocator_.destroy(&data_[i - 1]); // Not sure why this is needed though
 	}
 
 	allocator_.construct(&data_[0], std::forward<ValType>(val));
@@ -290,6 +285,8 @@ void Vector<T, Allocator>::popFront()
 
 	assert(!isEmpty());
 
+	allocator_.destroy(&data_[0]);
+
 	for (size_t i = 0; i < size_ - 1; ++i)
 	{
 		data_[i] = std::move(data_[i + 1]);
@@ -303,12 +300,13 @@ template <typename T, typename Allocator>
 void Vector<T, Allocator>::popBack()
 {
 	assert(isInBounds(size_ - 1));
+	allocator_.destroy(&data_[size_ - 1]);
 	--size_;
 }
 
 
 template <typename T, typename Allocator>
-void Vector<T, Allocator>::clear()
+void Vector<T, Allocator>::reset()
 {
 	for (size_t i = 0; i < size_; ++i)
 	{
@@ -322,6 +320,7 @@ void Vector<T, Allocator>::clear()
 	size_ = 0;
 	capacity_ = 0;
 }
+
 
 
 template <typename T, typename Allocator>
@@ -389,20 +388,34 @@ typename Vector<T, Allocator>::ConstIterator Vector<T, Allocator>::end() const
 template <typename T, typename Allocator>
 void Vector<T, Allocator>::inflate()
 {
-	size_t oldCapacity = capacity_;
+	size_t neededCapacity = capacity_;
 
-	if (capacity_ == 0)
+	if (neededCapacity == 0)
 	{
-		capacity_ = 1;
+		neededCapacity = 1;
 	}
 	else
 	{
-		capacity_ *= 2;
+		neededCapacity *= 2;
 	}
+
+	reserve(neededCapacity);
+}
+
+
+template<typename T, typename Allocator>
+void Vector<T, Allocator>::reserve(size_t n)
+{
+	if (n < capacity_)
+	{
+		return;
+	}
+
+	size_t oldCapacity = capacity_;
 
 	auto oldData = data_;
 
-	data_ = allocator_.allocate(capacity_);
+	data_ = allocator_.allocate(n);
 
 	for (size_t i = 0; i < size_; ++i)
 	{
@@ -410,24 +423,15 @@ void Vector<T, Allocator>::inflate()
 		allocator_.destroy(&oldData[i]); // TOSEARCH: Do I even need this if I'm deallocating?
 	}
 
+	capacity_ = n;
 	allocator_.deallocate(oldData, oldCapacity);
-}
-
-
-template <typename T, typename Allocator>
-void Vector<T, Allocator>::initializeEmptyVector()
-{
-	size_ = 0;
-	capacity_ = DefaultCapacity;
-
-	data_ = allocator_.allocate(capacity_);
 }
 
 
 template <typename T, typename Allocator>
 void Vector<T, Allocator>::copyFromAnother(const Vector<T>& other)
 {
-	clear();
+	reset();
 
 	data_ = allocator_.allocate(other.capacity_);
 	for (size_t i = 0; i < other.size_; ++i)
@@ -443,7 +447,7 @@ void Vector<T, Allocator>::copyFromAnother(const Vector<T>& other)
 template <typename T, typename Allocator>
 void Vector<T, Allocator>::moveFromAnother(Vector<T>&& other)
 {
-	clear();
+	reset();
 
 	size_ = other.size_;
 	capacity_ = other.capacity_;

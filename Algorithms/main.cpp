@@ -30,11 +30,106 @@ struct MoveOnly {
     }
 };
 
+
+class MyClass
+{
+public:
+    MyClass()
+        : val{0}
+    {
+        std::cout << "def MyClass " << val << std::endl;
+    }
+    MyClass(int a)
+        : val{a}
+    {
+        std::cout << "MyClass(a) " << val << std::endl;
+    }
+    MyClass(const MyClass& other)
+        : val(other.val)
+    {
+        std::cout << "Copy MyClass(other) " << val << std::endl;
+    }
+
+    MyClass(MyClass&& other) noexcept
+        : val(other.val)
+    {
+        other.val = 0;
+        std::cout << "Move MyClass(other) " << val << std::endl;
+    }
+
+    MyClass& operator=(const MyClass& other)
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        val = other.val;
+
+        std::cout << "Copy Operator " << val << std::endl;
+
+        return *this;
+    }
+
+    MyClass& operator=(MyClass&& other) noexcept
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        val = other.val;
+        other.val = 0;
+
+        std::cout << "Move Operator " << val << std::endl;
+
+        return *this;
+    }
+
+    ~MyClass()
+    {
+        std::cout << "~MyClass() " << val << std::endl;
+    }
+public:
+    int val{};
+};
+
 int main()
 {
-	std::cout << "Hello, World!\n";
+    Vector<MyClass> myVectorData{ 1, 2, 3 };
+    for (auto& v : myVectorData)
+    {
+        std::cout << v.val << std::endl;
+    }
 
-    //std::vector<MoveOnly> vector;
+    myVectorData.pushFront(123);
+
+    for (auto& v : myVectorData)
+    {
+        std::cout << v.val << std::endl;
+    }
+
+    //int size = 3;
+    //MyClass* data = new MyClass[10]{1, 2, 3, };
+    //for (int i = 0; i < size; ++i)
+    //{
+    //    std::cout << data[i].val << std::endl;
+    //}
+
+    //for (int i = size; i > 0; --i)
+    //{
+    //    data[i] = std::move(data[i - 1]);
+    //}
+
+    //for (int i = 0; i < size + 1; ++i)
+    //{
+    //    std::cout << data[i].val << std::endl;
+    //}
+
+    //delete[] data;
+
+    //std::vector<MoveOnly> vector{MoveOnly(42)};
+    //vector.insert(vector.begin(), MoveOnly(32));
     //vector.begin();
     //std::cout << vector.capacity() << std::endl;
     //vector.push_back(MoveOnly(42));

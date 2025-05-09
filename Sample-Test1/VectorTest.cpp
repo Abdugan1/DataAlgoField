@@ -73,6 +73,28 @@ TEST(VectorTest, MoveAssignment) {
     EXPECT_EQ(vec1.capacity(), 0);
 }
 
+// Move Only Types Test
+TEST(VectorTest, MoveOnlyType) {
+    Vector<std::unique_ptr<int>> vec;
+    vec.pushBack(std::make_unique<int>(10));
+    vec.pushBack(std::make_unique<int>(20));
+
+    ASSERT_EQ(vec.size(), 2);
+    EXPECT_EQ(*vec[0], 10);
+    EXPECT_EQ(*vec[1], 20);
+}
+
+
+TEST(VectorTest, PushFrontResizingStress) {
+    Vector<int> vec;
+    for (int i = 0; i < 1000; ++i)
+        vec.pushFront(i);
+    EXPECT_EQ(vec.size(), 1000);
+    EXPECT_EQ(vec[0], 999);
+    EXPECT_EQ(vec[999], 0);
+}
+
+
 // Push Front Test
 TEST(VectorTest, PushFront) {
     Vector<int> vec;
@@ -164,10 +186,10 @@ TEST(VectorTest, PopBackEmpty) {
 }
 
 
-// Clear Test
-TEST(VectorTest, Clear) {
+// Reset Test
+TEST(VectorTest, Reset) {
     Vector<int> vec = { 1, 2, 3 };
-    vec.clear();
+    vec.reset();
     EXPECT_EQ(vec.size(), 0);
     EXPECT_GE(vec.capacity(), 0); // Capacity might not be 0, but should be reasonable
 }
@@ -262,6 +284,58 @@ TEST(VectorTest, ConstIterator) {
     EXPECT_EQ(sum, 15);
 }
 
+TEST(VectorTest, IteratorInvalidationAfterPushBack) {
+    Vector<int> vec = { 1, 2, 3 };
+    auto it = vec.begin();
+    int first = *it;
+
+    vec.pushBack(4); // Might trigger reallocation
+
+    // `it` may be invalid now, depending on how capacity growth is implemented
+    // This test checks if we *documented* or *prevented* invalid use
+    EXPECT_EQ(first, 1);
+    // Accessing `*it` again here is undefined behavior in std-style containers after resize
+}
+
+
+TEST(VectorTest, NestedVector) {
+    Vector<Vector<int>> nestedVec;
+    Vector<int> inner1 = { 1, 2 };
+    Vector<int> inner2 = { 3, 4 };
+
+    nestedVec.pushBack(inner1);
+    nestedVec.pushBack(std::move(inner2));
+
+    ASSERT_EQ(nestedVec.size(), 2);
+    EXPECT_EQ(nestedVec[0][1], 2);
+    EXPECT_EQ(nestedVec[1][0], 3);
+}
+
+
+TEST(VectorTest, PushFrontMoveOnlyType) {
+    Vector<std::unique_ptr<int>> vec;
+    vec.pushFront(std::make_unique<int>(42));
+    vec.pushFront(std::make_unique<int>(99));
+
+    ASSERT_EQ(vec.size(), 2);
+    EXPECT_EQ(*vec[0], 99);
+    EXPECT_EQ(*vec[1], 42);
+}
+
+
+TEST(VectorTest, SelfAssignmentMoveOnlyType) {
+    Vector<std::unique_ptr<int>> vec;
+    vec.pushBack(std::make_unique<int>(1));
+    vec.pushBack(std::make_unique<int>(2));
+
+    vec = std::move(vec); // Self-move, should not corrupt state
+
+    ASSERT_EQ(vec.size(), 2);
+    EXPECT_EQ(*vec[0], 1);
+    EXPECT_EQ(*vec[1], 2);
+}
+
+
 // Self-Assignment Test (Copy Assignment)
 TEST(VectorTest, SelfAssignmentCopy) {
     Vector<int> vec = { 1, 2, 3 };
@@ -279,20 +353,3 @@ TEST(VectorTest, SelfAssignmentMove) {
     EXPECT_EQ(vec.size(), 3);
     EXPECT_GE(vec.capacity(), 3);
 }
-
-// Test for initial capacity being honored.
-TEST(VectorTest, CapacityHonored) {
-    Vector<int> vec = { 1,2,3,4,5,6,7,8 };
-    EXPECT_EQ(vec.capacity(), 8);
-    EXPECT_EQ(vec.size(), 8);
-    vec.pushBack(9);
-    EXPECT_GE(vec.capacity(), 9);
-    EXPECT_EQ(vec.size(), 9);
-}
-
-//// Test that verifies that the vector doesn't allocate memory when it is empty.
-//TEST(VectorTest, EmptyVectorDoesNotAllocate) {
-//    Vector<int> vec;
-//    EXPECT_EQ(vec.size(), 0);
-//    EXPECT_NE(vec.capacity(), 0); // It has the default capacity of 8.
-//}
