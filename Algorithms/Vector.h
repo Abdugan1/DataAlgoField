@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cassert>
 #include <initializer_list>
+#include <memory>
 
 
 template<typename T, typename Allocator = std::allocator<T>>
@@ -19,7 +20,7 @@ public:
 	using my_vector = Vector<T>;
 	ConstVectorIterator(const my_vector* owner, const pointer ptr) :owner_{owner}, ptr_ { ptr } {}
 
-	const T& operator*() const { return *ptr_; }
+	const_reference operator*() const { return *ptr_; }
 
 	const_iterator& operator++() { ++ptr_; return *this; }
 	const_iterator operator++(int) { const_iterator tmp = *this; ++ptr_; return tmp; }
@@ -74,9 +75,12 @@ public:
 	using ConstIterator = ConstVectorIterator<T, Allocator>;
 
 	using allocator_type = Allocator;
+	using alloc_traits = std::allocator_traits<Allocator>;
+	using pointer = typename alloc_traits::pointer;
+	using size_type = typename alloc_traits::size_type;
 
 public:
-	Vector();
+	Vector() = default;
 	Vector(std::initializer_list<T> vals);
 	~Vector();
 
@@ -97,14 +101,14 @@ public:
 
 	void reset();
 
-	void reserve(size_t n);
+	void reserve(size_type n);
 
-	constexpr size_t size() const noexcept;
-	constexpr size_t capacity() const noexcept;
+	constexpr size_type size() const noexcept { return size_; }
+	constexpr size_type capacity() const noexcept { return capacity_; }
 	constexpr bool isEmpty() const noexcept;
 
-	T& operator[](size_t i);
-	const T& operator[](size_t i) const;
+	T& operator[](size_type i);
+	const T& operator[](size_type i) const;
 
 	Iterator begin();
 	Iterator end();
@@ -121,7 +125,7 @@ private:
 	template<typename ValType>
 	void insertAtEnd(ValType&& val);
 
-	constexpr bool isInBounds(size_t i) const noexcept;
+	constexpr bool isInBounds(size_type i) const noexcept;
 
 	void copyFromAnother(const Vector<T>& other);
 	void moveFromAnother(Vector<T>&& other);
@@ -129,22 +133,16 @@ private:
 private:
 	allocator_type allocator_{};
 
-	T* data_{nullptr};
+	pointer data_{nullptr};
 
-	size_t size_{0};
-	size_t capacity_{ 0 };
+	size_type size_{0};
+	size_type capacity_{ 0 };
 };
 
 template <typename T, typename Allocator>
-constexpr bool Vector<T, Allocator>::isInBounds(size_t i) const noexcept
+constexpr bool Vector<T, Allocator>::isInBounds(size_type i) const noexcept
 {
 	return (i < size_);
-}
-
-
-template <typename T, typename Allocator>
-Vector<T, Allocator>::Vector()
-{
 }
 
 
@@ -153,12 +151,12 @@ Vector<T, Allocator>::Vector(std::initializer_list<T> vals)
 {
 	size_ = vals.size();
 	capacity_ = size_;
-	data_ = allocator_.allocate(capacity_);
+	data_ = alloc_traits::allocate(allocator_, capacity_);
 
-	size_t i = 0;
+	size_type i = 0;
 	for (auto& val : vals)
 	{
-		allocator_.construct(&data_[i], val);
+		alloc_traits::construct(allocator_, &data_[i], val);
 		i++;
 	}
 }
@@ -235,13 +233,28 @@ void Vector<T, Allocator>::insertAtBeginning(ValType&& val)
 		inflate();
 	}
 
-	for (size_t i = size_; i > 0; --i)
+	/* Consider using this? */
+	/*
+	* std::move_backward(data_, data_ + size_, data_ + size_ + 1);
+	*/
+	for (size_type i = size_; i > 0; --i)
 	{
-		allocator_.construct(&data_[i], std::move(data_[i - 1]));
-		allocator_.destroy(&data_[i - 1]); // Not sure why this is needed though
+		/*
+		* Since we're dealing with raw memory, we cannot use plain data_[i] = std::move(data_[i - 1]).
+		* Notice that the iteration beginning is i = size_, this is out of range actually.
+		* When you use plain new and delete, mostly when you Vector::reserve, the out-of-range side,
+		* i.e., the range above size_, is valid, either by Default constructor or something else.
+		* But when you deal with raw memory, allocation and construction is separated. So it's not valid.
+		* When we shift, we need to construct every time to prevent access/assigning of not valid data.
+		* When you finish constructing, you must delete the old/moved-from object to keep the logic 
+		* to shift to invalid data. When you delete the old data, the place is invalid,
+		* hence, the same logic - calling the Move constructor - can be applied again.
+		*/
+		alloc_traits::construct(allocator_, &data_[i], std::move(data_[i - 1]));
+		alloc_traits::destroy(allocator_, &data_[i - 1]); 
 	}
 
-	allocator_.construct(&data_[0], std::forward<ValType>(val));
+	alloc_traits::construct(allocator_, &data_[0], std::forward<ValType>(val));
 
 	++size_;
 }
@@ -269,7 +282,7 @@ void Vector<T, Allocator>::insertAtEnd(ValType&& val)
 		inflate();
 	}
 
-	allocator_.construct(&data_[size_], std::forward<ValType>(val));
+	alloc_traits::construct(allocator_, &data_[size_], std::forward<ValType>(val));
 
 	size_++;
 }
@@ -285,9 +298,9 @@ void Vector<T, Allocator>::popFront()
 
 	assert(!isEmpty());
 
-	allocator_.destroy(&data_[0]);
+	alloc_traits::destroy(allocator_, &data_[0]);
 
-	for (size_t i = 0; i < size_ - 1; ++i)
+	for (size_type i = 0; i < size_ - 1; ++i)
 	{
 		data_[i] = std::move(data_[i + 1]);
 	}
@@ -300,7 +313,7 @@ template <typename T, typename Allocator>
 void Vector<T, Allocator>::popBack()
 {
 	assert(isInBounds(size_ - 1));
-	allocator_.destroy(&data_[size_ - 1]);
+	alloc_traits::destroy(allocator_, &data_[size_ - 1]);
 	--size_;
 }
 
@@ -308,32 +321,17 @@ void Vector<T, Allocator>::popBack()
 template <typename T, typename Allocator>
 void Vector<T, Allocator>::reset()
 {
-	for (size_t i = 0; i < size_; ++i)
+	for (size_type i = 0; i < size_; ++i)
 	{
-		allocator_.destroy(&data_[i]);
+		alloc_traits::destroy(allocator_, &data_[i]);
 	}
 
-	allocator_.deallocate(data_, capacity_);
+	alloc_traits::deallocate(allocator_, data_, capacity_);
 
 	data_ = nullptr;
 
 	size_ = 0;
 	capacity_ = 0;
-}
-
-
-
-template <typename T, typename Allocator>
-constexpr size_t Vector<T, Allocator>::size() const noexcept
-{
-	return size_;
-}
-
-
-template <typename T, typename Allocator>
-constexpr size_t Vector<T, Allocator>::capacity() const noexcept
-{
-	return capacity_;
 }
 
 
@@ -345,14 +343,14 @@ constexpr bool Vector<T, Allocator>::isEmpty() const noexcept
 
 
 template <typename T, typename Allocator>
-T& Vector<T, Allocator>::operator[](size_t i)
+T& Vector<T, Allocator>::operator[](size_type i)
 {
 	return const_cast<T&>(static_cast<const Vector&>(*this)[i]);
 }
 
 
 template <typename T, typename Allocator>
-const T& Vector<T, Allocator>::operator[](size_t i) const
+const T& Vector<T, Allocator>::operator[](size_type i) const
 {
 	assert(isInBounds(i));
 	return data_[i];
@@ -388,7 +386,7 @@ typename Vector<T, Allocator>::ConstIterator Vector<T, Allocator>::end() const
 template <typename T, typename Allocator>
 void Vector<T, Allocator>::inflate()
 {
-	size_t neededCapacity = capacity_;
+	size_type neededCapacity = capacity_;
 
 	if (neededCapacity == 0)
 	{
@@ -404,27 +402,33 @@ void Vector<T, Allocator>::inflate()
 
 
 template<typename T, typename Allocator>
-void Vector<T, Allocator>::reserve(size_t n)
+void Vector<T, Allocator>::reserve(size_type n)
 {
 	if (n < capacity_)
 	{
 		return;
 	}
 
-	size_t oldCapacity = capacity_;
+	size_type oldCapacity = capacity_;
 
 	auto oldData = data_;
 
-	data_ = allocator_.allocate(n);
+	data_ = alloc_traits::allocate(allocator_, n);
 
-	for (size_t i = 0; i < size_; ++i)
+	for (size_type i = 0; i < size_; ++i)
 	{
-		allocator_.construct(&data_[i], std::move(oldData[i]));
-		allocator_.destroy(&oldData[i]); // TOSEARCH: Do I even need this if I'm deallocating?
+		alloc_traits::construct(allocator_, &data_[i], std::move(oldData[i]));
+		alloc_traits::destroy(allocator_, &oldData[i]);
+
+		/* I could use this? */
+		/*
+		* std::uninitialized_move(oldData, oldData + size_, data_);
+		* std::destroy(oldData, oldData + size_);
+		*/
 	}
 
 	capacity_ = n;
-	allocator_.deallocate(oldData, oldCapacity);
+	alloc_traits::deallocate(allocator_, oldData, oldCapacity);
 }
 
 
@@ -433,10 +437,11 @@ void Vector<T, Allocator>::copyFromAnother(const Vector<T>& other)
 {
 	reset();
 
-	data_ = allocator_.allocate(other.capacity_);
-	for (size_t i = 0; i < other.size_; ++i)
+	data_ = alloc_traits::allocate(allocator_, other.capacity_); 
+
+	for (size_type i = 0; i < other.size_; ++i)
 	{
-		allocator_.construct(&data_[i], other.data_[i]);
+		alloc_traits::construct(allocator_, &data_[i], other.data_[i]);
 	}
 
 	size_ = other.size_;

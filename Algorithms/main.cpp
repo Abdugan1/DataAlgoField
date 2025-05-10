@@ -1,6 +1,8 @@
 #include <iostream>
 #include <stack>
 #include <vector>
+#include <forward_list>
+#include <list>
 
 #include "Stack.h"
 #include "Vector.h"
@@ -96,85 +98,9 @@ public:
 
 int main()
 {
-    Vector<MyClass> myVectorData{ 1, 2, 3 };
-    for (auto& v : myVectorData)
-    {
-        std::cout << v.val << std::endl;
-    }
-
-    myVectorData.pushFront(123);
-
-    for (auto& v : myVectorData)
-    {
-        std::cout << v.val << std::endl;
-    }
-
-    //int size = 3;
-    //MyClass* data = new MyClass[10]{1, 2, 3, };
-    //for (int i = 0; i < size; ++i)
-    //{
-    //    std::cout << data[i].val << std::endl;
-    //}
-
-    //for (int i = size; i > 0; --i)
-    //{
-    //    data[i] = std::move(data[i - 1]);
-    //}
-
-    //for (int i = 0; i < size + 1; ++i)
-    //{
-    //    std::cout << data[i].val << std::endl;
-    //}
-
-    //delete[] data;
-
-    //std::vector<MoveOnly> vector{MoveOnly(42)};
-    //vector.insert(vector.begin(), MoveOnly(32));
-    //vector.begin();
-    //std::cout << vector.capacity() << std::endl;
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //vector.push_back(MoveOnly(42));
-    //std::cout << vector.capacity() << std::endl;
-    //std::cout << vector.size() << std::endl;
-
-    //Vector<int> a;
-    //a.pushBack(123);
-    //a.pushBack(123);
-    //a.pushBack(123);
-    //a.pushBack(123);
-    //a.pushBack(123);
-    //std::cout << a.size() << std::endl;
-
-    //Vector<MoveOnly> a;
-    //a.pushBack(MoveOnly(1));
-    //a.pushBack(MoveOnly(2));
-    //a.pushBack(MoveOnly(3));
-    //a.popFront(); // Uh-oh
-
-
-    //Vector<MoveOnly> myVector;
-    //myVector.pushBack(MoveOnly(42));
-    //std::cout << myVector.size() << std::endl;
-
-
-
-    //Vector<std::unique_ptr<int>> myVectorMemory;
-    //myVectorMemory.pushBack(std::make_unique<int>(42));
-    //std::cout << myVectorMemory.size() << std::endl;
+    std::forward_list<int> forwardList;
+    std::vector<int> vectorA;
+    forwardList.push_front(123);
 
 	return 0;
 }
