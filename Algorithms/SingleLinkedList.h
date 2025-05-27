@@ -55,6 +55,7 @@ public:
 	using alloc_traits = std::allocator_traits<allocator_type>;
 	using node_alloc_type = typename alloc_traits::template rebind_alloc<Node>;
 	using node_alloc_traits = std::allocator_traits<node_alloc_type>;
+
 	using node_pointer = typename node_alloc_traits::pointer;
 	using size_type = typename alloc_traits::size_type;
 
@@ -137,7 +138,7 @@ public:
 	using Node = SingleLinkedListNode<T>;
 	using NodePtr = Node*;
 
-	using my_list = SingleLinkedList<T>;
+	using my_list = SingleLinkedList<T, Allocator>;
 
 public:
 	ConstSingleLinkedListIterator(const my_list* owner, NodePtr node) : owner_{ owner }, node_{ node } {}
@@ -175,7 +176,7 @@ public:
 	using Node = SingleLinkedListNode<T>;
 	using NodePtr = Node*;
 
-	using my_list = SingleLinkedList<T>;
+	using my_list = SingleLinkedList<T, Allocator>;
 
 public:
 	SingleLinkedListIterator(const my_list* owner, NodePtr node) : owner_{ owner }, node_{ node } {}
