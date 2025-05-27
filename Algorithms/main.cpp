@@ -3,6 +3,7 @@
 #include <vector>
 #include <forward_list>
 #include <list>
+#include <queue>
 
 #include "Stack.h"
 #include "Vector.h"
@@ -101,6 +102,8 @@ int main()
     std::forward_list<int> forwardList;
     std::vector<int> vectorA;
     forwardList.push_front(123);
+
+    std::queue<int> a;
 
 	return 0;
 }

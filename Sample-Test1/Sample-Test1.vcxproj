@@ -57,6 +57,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -101,6 +102,7 @@
   <ItemGroup>
     <ClCompile Include="DoubleLinkedList.cpp" />
     <ClCompile Include="LinkedListTest.cpp" />
+    <ClCompile Include="Queue.cpp" />
     <ClCompile Include="Stack.cpp" />
     <ClCompile Include="VectorTest.cpp" />
     <ClCompile Include="pch.cpp">
